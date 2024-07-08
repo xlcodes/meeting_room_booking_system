@@ -2,11 +2,12 @@ import {HttpException, HttpStatus, Inject, Injectable, Logger} from '@nestjs/com
 import {InjectRepository} from "@nestjs/typeorm";
 import {User} from "./entities/user.entity";
 import {Repository} from "typeorm";
-import {RegisterUserDto} from "./dto/user.dto";
+import {LoginUserDto, RegisterUserDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {md5} from "../common/utils";
 import {Role} from "./entities/role.entity";
 import {Permission} from "./entities/permission.entity";
+import {LoginUserVo} from "./vo/user.vo";
 
 @Injectable()
 export class UserService {
@@ -116,5 +117,43 @@ export class UserService {
             this.logger.error(err, UserService)
             throw new HttpException('数据初始化失败', HttpStatus.BAD_REQUEST)
         }
+    }
+
+    async login(loginUserDto: LoginUserDto, isAdmin: boolean) {
+        const user = await this.userRepository.findOne({
+            where: {
+                username: loginUserDto.username,
+                isAdmin
+            },
+            relations: ['roles', 'roles.permissions']
+        })
+        // 用户名和密码异常信息暴露不太明显
+        if (!user || user.password !== md5(loginUserDto.password)) {
+            throw new HttpException('用户不存在或密码错误', HttpStatus.BAD_REQUEST)
+        }
+
+        const vo = new LoginUserVo()
+        vo.userInfo = {
+            uid: user.uid,
+            username: user.username,
+            nickName: user.nickName,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            headPic: user.headPic,
+            createTime: user.createTime as any,
+            isFrozen: user.isFrozen,
+            isAdmin: user.isAdmin,
+            roles: user.roles.map(item => item.name),
+            permissions: user.roles.reduce((arr: any, item: Role) => {
+                item.permissions.forEach(per => {
+                    if (arr.indexOf(per) === -1) {
+                        arr.push(per)
+                    }
+                })
+                return arr
+            }, [])
+        }
+
+        return vo
     }
 }
