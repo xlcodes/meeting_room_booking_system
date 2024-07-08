@@ -1,0 +1,3 @@
+export enum COMMON_PROVIDERS {
+    REDIS_CLIENT = 'REDIS_CLIENT'
+}
