@@ -1,10 +1,9 @@
 {
   "name": "meeting_room_booking_system",
   "version": "1.0.0",
-  "description": "",
+  "description": "会议室预约系统",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",

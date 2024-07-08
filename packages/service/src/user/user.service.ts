@@ -5,6 +5,8 @@ import {Repository} from "typeorm";
 import {RegisterUserDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {md5} from "../common/utils";
+import {Role} from "./entities/role.entity";
+import {Permission} from "./entities/permission.entity";
 
 @Injectable()
 export class UserService {
@@ -12,6 +14,12 @@ export class UserService {
 
     @InjectRepository(User)
     private userRepository: Repository<User>;
+
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>;
+
+    @InjectRepository(Permission)
+    private permissionRepository: Repository<Permission>;
 
     @Inject(RedisService)
     private redisService: RedisService;
@@ -51,6 +59,62 @@ export class UserService {
 
         if (captchaValue !== captcha) {
             throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    async initData() {
+
+        const foundUser = await this.userRepository.findOneBy({
+            username: 'zhangsan'
+        })
+
+        if (foundUser) {
+            throw new HttpException('数据已经被初始化', HttpStatus.BAD_REQUEST)
+        }
+
+        const user1 = new User()
+        user1.username = 'zhangsan'
+        user1.password = md5('111111')
+        user1.email = '111111@qq.com'
+        user1.isAdmin = true
+        user1.nickName = '张三'
+        user1.phoneNumber = '13111111111'
+
+        const user2 = new User()
+        user2.username = 'lisi'
+        user2.password = md5('222222')
+        user2.email = '222222@qq.com'
+        user2.nickName = '李四'
+        user2.phoneNumber = '13122222222'
+
+        const role1 = new Role()
+        role1.name = '管理员'
+
+        const role2 = new Role()
+        role2.name = '普通用户'
+
+        const p1 = new Permission()
+        p1.code = 'aaa'
+        p1.desc = 'a接口访问权限'
+
+        const p2 = new Permission()
+        p2.code = 'bbb'
+        p2.desc = 'b接口访问权限'
+
+        user1.roles = [role1]
+        user2.roles = [role2]
+
+        role1.permissions = [p1, p2]
+        role2.permissions = [p1]
+
+        try {
+            await this.permissionRepository.save([p1, p2])
+            await this.roleRepository.save([role1, role2])
+            await this.userRepository.save([user1, user2])
+            return '数据初始化成功'
+        } catch (err) {
+            this.logger.error(err, UserService)
+            throw new HttpException('数据初始化失败', HttpStatus.BAD_REQUEST)
         }
     }
 }
