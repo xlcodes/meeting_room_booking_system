@@ -6,8 +6,9 @@ import {EmailService} from "../email/email.service";
 import {TokenType} from "../common/types";
 import {JwtService} from "@nestjs/jwt";
 import {ConfigService} from "@nestjs/config";
-import {LoginUserVo} from "./vo/user.vo";
+import {LoginUserVo, UserDetailVo} from "./vo/user.vo";
 import {isTrue} from "../common/utils";
+import {RequireLogin, UserInfo} from "../common/decorator/require.decorator";
 
 @Controller('user')
 export class UserController {
@@ -97,7 +98,7 @@ export class UserController {
     async refresh(@Query('refreshToken') refreshToken: string, @Query('isAdmin') isAdmin: boolean) {
         try {
             const data = this.jwtService.verify(refreshToken)
-            const user = await this.userService.findUserById(data.userId, isTrue(isAdmin))
+            const user = await this.userService.findUserById(data.uid, isTrue(isAdmin))
 
             return {
                 access_token: this.signToken(user, 'accessToken'),
@@ -109,18 +110,34 @@ export class UserController {
         }
     }
 
+    @Get('info')
+    @RequireLogin()
+    async info(@UserInfo('uid') uid: number) {
+        const user = await this.userService.findUserDetailById(uid)
+
+        const vo = new UserDetailVo();
+        vo.uid = user.uid;
+        vo.email = user.email;
+        vo.username = user.username;
+        vo.headPic = user.headPic;
+        vo.phoneNumber = user.phoneNumber;
+        vo.nickName = user.nickName;
+        vo.createTime = user.createTime;
+        vo.isFrozen = user.isFrozen;
+        return vo;
+    }
+
     /**
      * token签发
      * @param user 用户信息
      * @param type token类型
      */
     signToken(user: LoginUserVo, type: TokenType) {
-
         const {userInfo} = user
         const {uid, username, roles, permissions} = userInfo
 
         const payload = {
-            userId: uid,
+            uid,
         }
 
         if (type === 'accessToken') {

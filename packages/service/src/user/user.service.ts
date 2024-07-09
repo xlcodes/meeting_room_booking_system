@@ -132,35 +132,13 @@ export class UserService {
             throw new HttpException('用户不存在或密码错误', HttpStatus.BAD_REQUEST)
         }
 
-        const vo = new LoginUserVo()
-        vo.userInfo = {
-            uid: user.uid,
-            username: user.username,
-            nickName: user.nickName,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            headPic: user.headPic,
-            createTime: user.createTime as any,
-            isFrozen: user.isFrozen,
-            isAdmin: user.isAdmin,
-            roles: user.roles.map(item => item.name),
-            permissions: user.roles.reduce((arr: any, item: Role) => {
-                item.permissions.forEach(per => {
-                    if (arr.indexOf(per) === -1) {
-                        arr.push(per)
-                    }
-                })
-                return arr
-            }, [])
-        }
-
-        return vo
+        return this.getUserInfoVo(user)
     }
 
-    async findUserById(userId: number, isAdmin: boolean) {
+    async findUserById(uid: number, isAdmin: boolean) {
         const user = await this.userRepository.findOne({
             where: {
-                uid: userId,
+                uid,
                 isAdmin
             },
             relations: ['roles', 'roles.permissions']
@@ -183,6 +161,42 @@ export class UserService {
             }, [])
         }
 
+        return vo
+    }
+
+    async findUserDetailById(uid: number) {
+       return await this.userRepository.findOne({
+            where: {
+                uid
+            }
+        })
+    }
+
+    getUserInfoVo(user: User) {
+        const vo = new LoginUserVo()
+        vo.userInfo = {
+            uid: user.uid,
+            username: user.username,
+            nickName: user.nickName,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            headPic: user.headPic,
+            createTime: user.createTime as any,
+            isFrozen: user.isFrozen,
+            isAdmin: user.isAdmin,
+        }
+
+        if (user.roles) {
+            vo.userInfo.roles = user.roles.map(item => item.name)
+            vo.userInfo.permissions = user.roles.reduce((arr: any, item: Role) => {
+                item.permissions.forEach(per => {
+                    if (arr.indexOf(per) === -1) {
+                        arr.push(per)
+                    }
+                })
+                return arr
+            }, [])
+        }
         return vo
     }
 }
