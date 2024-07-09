@@ -156,4 +156,33 @@ export class UserService {
 
         return vo
     }
+
+    async findUserById(userId: number, isAdmin: boolean) {
+        const user = await this.userRepository.findOne({
+            where: {
+                uid: userId,
+                isAdmin
+            },
+            relations: ['roles', 'roles.permissions']
+        })
+
+        const vo = new LoginUserVo()
+
+        vo.userInfo = {
+            uid: user.uid,
+            username: user.username,
+            isAdmin: user.isAdmin,
+            roles: user.roles.map(item => item.name),
+            permissions: user.roles.reduce((arr, item) => {
+                item.permissions.forEach(permission => {
+                    if (arr.indexOf(permission) === -1) {
+                        arr.push(permission);
+                    }
+                })
+                return arr;
+            }, [])
+        }
+
+        return vo
+    }
 }

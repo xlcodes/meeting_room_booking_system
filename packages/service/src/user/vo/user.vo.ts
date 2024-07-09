@@ -24,9 +24,9 @@ interface UserInfoVo {
 
 export class LoginUserVo {
 
-    userInfo: UserInfoVo;
+    userInfo: Partial<UserInfoVo>;
 
-    accessToken: string;
+    access_token: string;
 
-    refreshToken: string;
+    refresh_token: string;
 }
