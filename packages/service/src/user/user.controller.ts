@@ -1,6 +1,6 @@
 import {Controller, Get, Post, Body, Query, Inject, UnauthorizedException} from '@nestjs/common';
 import {UserService} from './user.service';
-import {CaptchaQueryDto, LoginUserDto, RegisterUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
+import {CaptchaQueryDto, LoginUserDto, RegisterUserDto, UpdateUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {EmailService} from "../email/email.service";
 import {TokenType} from "../common/types";
@@ -52,7 +52,7 @@ export class UserController {
      */
     @Get('register-captcha')
     async registerCaptcha(@Query() queryDto: CaptchaQueryDto) {
-        const  { email } = queryDto
+        const {email} = queryDto
         const code = Math.random().toString().slice(2, 8)
 
         await this.redisService.set(`captcha_${email}`, code, 5 * 60)
@@ -146,7 +146,7 @@ export class UserController {
      */
     @Get('update-captcha')
     async updateCaptcha(@Query() queryDto: CaptchaQueryDto) {
-        const { email } = queryDto
+        const {email} = queryDto
 
         const code = Math.random().toString().slice(2, 8);
 
@@ -161,7 +161,11 @@ export class UserController {
         return '邮件发送成功'
     }
 
-
+    @Post('update')
+    @RequireLogin()
+    async update(@UserInfo('uid') uid: number, @Body() updateUserData: UpdateUserDto) {
+        return await this.userService.update(uid, updateUserData)
+    }
 
     /**
      * token签发

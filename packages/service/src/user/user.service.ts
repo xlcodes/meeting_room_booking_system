@@ -2,7 +2,7 @@ import {HttpException, HttpStatus, Inject, Injectable, Logger} from '@nestjs/com
 import {InjectRepository} from "@nestjs/typeorm";
 import {User} from "./entities/user.entity";
 import {Repository} from "typeorm";
-import {LoginUserDto, RegisterUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
+import {LoginUserDto, RegisterUserDto, UpdateUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {md5} from "../common/utils";
 import {Role} from "./entities/role.entity";
@@ -189,6 +189,26 @@ export class UserService {
             return '密码修改失败'
         }
 
+    }
+
+    async update(uid: number, updateUserDto: UpdateUserDto) {
+        await this.checkCaptcha(`update_captcha_${updateUserDto.email}`, updateUserDto.captcha)
+
+        const foundUser = await this.userRepository.findOneBy({uid})
+        if (updateUserDto.nickName) {
+            foundUser.nickName = updateUserDto.nickName
+        }
+        if (updateUserDto.headPic) {
+            foundUser.headPic = updateUserDto.headPic
+        }
+
+        try {
+            await this.userRepository.save(foundUser)
+            return '用户信息修改成功'
+        } catch (err) {
+            this.logger.error(err, UserService)
+            return '用户信息修改失败'
+        }
     }
 
     getUserInfoVo(user: User) {
