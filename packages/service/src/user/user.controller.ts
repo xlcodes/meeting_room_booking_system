@@ -1,6 +1,6 @@
 import {Controller, Get, Post, Body, Query, Inject, UnauthorizedException} from '@nestjs/common';
 import {UserService} from './user.service';
-import {LoginUserDto, RegisterUserDto} from "./dto/user.dto";
+import {CaptchaQueryDto, LoginUserDto, RegisterUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {EmailService} from "../email/email.service";
 import {TokenType} from "../common/types";
@@ -48,14 +48,15 @@ export class UserController {
 
     /**
      * 获取注册验证码
-     * @param email
+     * @param queryDto
      */
     @Get('register-captcha')
-    async registerCaptcha(@Query('email') email: string) {
+    async registerCaptcha(@Query() queryDto: CaptchaQueryDto) {
+        const  { email } = queryDto
         const code = Math.random().toString().slice(2, 8)
-        console.log(code, 'code')
+
         await this.redisService.set(`captcha_${email}`, code, 5 * 60)
-        console.log('save code by redis')
+
         await this.emailService.sendEmail({
             to: email,
             subject: '注册验证码',
@@ -126,6 +127,41 @@ export class UserController {
         vo.isFrozen = user.isFrozen;
         return vo;
     }
+
+    /**
+     * 用户修改密码
+     * @param uid 用户id
+     * @param passwordDto
+     */
+    @Post('update_pwd')
+    @RequireLogin()
+    async updatePwd(@UserInfo('uid') uid: number, @Body() passwordDto: UpdateUserPasswordDto) {
+        console.log(uid)
+        return await this.userService.updatePwd(uid, passwordDto)
+    }
+
+    /**
+     * 获取修改用户信息验证码
+     * @param queryDto
+     */
+    @Get('update-captcha')
+    async updateCaptcha(@Query() queryDto: CaptchaQueryDto) {
+        const { email } = queryDto
+
+        const code = Math.random().toString().slice(2, 8);
+
+        await this.redisService.set(`update_captcha_${email}`, code, 10 * 60)
+
+        await this.emailService.sendEmail({
+            to: email,
+            subject: '修改用户信息验证码',
+            html: `<p>你的修改密码验证码是 ${code}，有效期 10 分钟。</p>`
+        })
+
+        return '邮件发送成功'
+    }
+
+
 
     /**
      * token签发

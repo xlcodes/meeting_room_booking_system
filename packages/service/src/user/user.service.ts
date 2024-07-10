@@ -2,7 +2,7 @@ import {HttpException, HttpStatus, Inject, Injectable, Logger} from '@nestjs/com
 import {InjectRepository} from "@nestjs/typeorm";
 import {User} from "./entities/user.entity";
 import {Repository} from "typeorm";
-import {LoginUserDto, RegisterUserDto} from "./dto/user.dto";
+import {LoginUserDto, RegisterUserDto, UpdateUserPasswordDto} from "./dto/user.dto";
 import {RedisService} from "../redis/redis.service";
 import {md5} from "../common/utils";
 import {Role} from "./entities/role.entity";
@@ -165,11 +165,30 @@ export class UserService {
     }
 
     async findUserDetailById(uid: number) {
-       return await this.userRepository.findOne({
+        return await this.userRepository.findOne({
             where: {
                 uid
             }
         })
+    }
+
+    async updatePwd(uid: number, passwordDto: UpdateUserPasswordDto) {
+        await this.checkCaptcha(`update_captcha_${passwordDto.email}`, passwordDto.captcha)
+
+        const foundUser = await this.userRepository.findOneBy({
+            uid
+        })
+
+        foundUser.password = md5(passwordDto.password)
+
+        try {
+            await this.userRepository.save(foundUser)
+            return '密码修改成功'
+        } catch (err) {
+            this.logger.error(err, UserService)
+            return '密码修改失败'
+        }
+
     }
 
     getUserInfoVo(user: User) {
