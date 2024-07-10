@@ -5,6 +5,7 @@ import {Request} from "express";
 import {Reflector} from "@nestjs/core";
 import {JwtService} from "@nestjs/jwt";
 import {COMMON_GUARD} from "../constant";
+import {UnLoginException} from "../filter/unLogin.filter";
 
 declare module 'express' {
     interface Request {
@@ -38,7 +39,8 @@ export class LoginGuard implements CanActivate {
         const authorization = request.headers.authorization;
 
         if (!authorization) {
-            throw new UnauthorizedException('用户未登录');
+            // throw new UnauthorizedException('用户未登录');
+            throw new UnLoginException()
         }
 
         try {
